@@ -1,31 +1,19 @@
-# resource "aws_s3_bucket" "b" {
-#   bucket = "mybucket"
-
-#   tags = {
-#     Name = "My bucket"
-#   }
-# }
-
-# resource "aws_s3_bucket_acl" "b_acl" {
-#   bucket = aws_s3_bucket.b.id
-#   acl    = "private"
-# }
-resource "aws_cloudfront_origin_access_identity" "example" {
+resource "aws_cloudfront_origin_access_identity" "oai" {
   comment = "${var.organization_name}-${lower(terraform.workspace)}"
 }
 
 
 locals {
-  s3_origin_id = "myS3Origin" #name tag of origin refered below
+  s3_origin_id = var.domain_name #name tag of origin refered below
 }
 
-resource "aws_cloudfront_distribution" "s3_distribution" {
+resource "aws_cloudfront_distribution" "cdn" {
   origin {
     domain_name = aws_s3_bucket.www.bucket_regional_domain_name
     origin_id   = local.s3_origin_id
 
     s3_origin_config {
-      origin_access_identity = aws_cloudfront_origin_access_identity.example.cloudfront_access_identity_path
+      origin_access_identity = aws_cloudfront_origin_access_identity.oai.cloudfront_access_identity_path
     }
   }
 
@@ -43,8 +31,8 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 #   aliases = ["www.gkranasinghe.com"] #configure aliases
 
   default_cache_behavior {
-    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods   = ["GET", "HEAD"]
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD", "OPTIONS"]
     target_origin_id = local.s3_origin_id
 
     forwarded_values {
@@ -108,10 +96,16 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   # price_class = "PriceClass_200" 
   price_class = "PriceClass_100"  # The cheapest priceclass
 
+  # restrictions {
+  #   geo_restriction {
+  #     restriction_type = "whitelist"
+  #     locations        = ["US", "CA", "GB", "DE","LK","RO"]
+  #   }
+  # }
   restrictions {
     geo_restriction {
-      restriction_type = "whitelist"
-      locations        = ["US", "CA", "GB", "DE","LK","RO"]
+      restriction_type = "none"
+      locations        = []
     }
   }
 
@@ -123,9 +117,6 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   viewer_certificate {
     cloudfront_default_certificate = true
   }
-  depends_on = [
-    aws_s3_bucket.www-logs,aws_s3_bucket.www
-  ]
+
 }
 
-#"AWS": "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity E21GB6Y35R4KF1"

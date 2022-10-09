@@ -31,3 +31,7 @@ variable "char_delimiter" {
   description = "The delimiter to use for unique names (default: -)"
   default     = "-"
 }
+
+variable "domain_name" {
+    type = string
+}
